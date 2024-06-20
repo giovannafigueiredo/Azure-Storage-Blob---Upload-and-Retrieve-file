@@ -66,7 +66,7 @@ upload.single(fieldname): Middleware to handle single file uploads from a form f
 path.join(paths): Joins multiple path segments into a single path.
 fs.unlink(path, callback): Deletes a file at the specified path.
 
-# Retrrieve File (Fetch data)
+# Retrieve File (Fetch data)
 
 This second code also sets up a web server using Express.js, but instead of uploading files to Azure Blob Storage, it fetches a CSV file from Azure Blob Storage and serves it to the client.
 
