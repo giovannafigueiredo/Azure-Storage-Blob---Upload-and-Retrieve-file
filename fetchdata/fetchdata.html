@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fetch data from Azure Storage</title>
+    <style>
+      /* Basic styles for the loading bar */
+      #loadingBarContainer {
+        display: none;
+        width: 100%;
+        background-color: #f3f3f3;
+        border: 1px solid #ccc;
+        margin-top: 10px;
+      }
+
+      #loadingBar {
+        width: 0;
+        height: 30px;
+        background-color: #4caf50;
+        text-align: center;
+        line-height: 30px;
+        color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Fetch data from Azure Storage</h1>
+    <button id="fetchButton">Fetch CSV</button>
+    <div id="loadingBarContainer">
+      <div id="loadingBar">0%</div>
+    </div>
+
+    <script>
+      document.getElementById("fetchButton").addEventListener("click", () => {
+        const loadingBarContainer = document.getElementById(
+          "loadingBarContainer"
+        );
+        const loadingBar = document.getElementById("loadingBar");
+
+        // Show the loading bar
+        loadingBarContainer.style.display = "block";
+        loadingBar.style.width = "0%";
+        loadingBar.textContent = "0%";
+
+        // Make a GET request to your server endpoint to fetch CSV data
+        fetch("/fetch-csv")
+          .then((response) => {
+            // Check if the response is successful
+            if (!response.ok) {
+              throw new Error("Failed to fetch CSV data");
+            }
+
+            // Get the total length of the response for progress calculation
+            const contentLength = response.headers.get("Content-Length");
+
+            if (!contentLength) {
+              throw new Error("Content-Length header is missing");
+            }
+
+            // Convert the response to a readable stream
+            const reader = response.body.getReader();
+            let receivedLength = 0; // received that many bytes at the moment
+            const chunks = []; // array of received binary chunks (comprises the body)
+
+            return new ReadableStream({
+              start(controller) {
+                // The following function handles each data chunk
+                function read() {
+                  reader
+                    .read()
+                    .then(({ done, value }) => {
+                      if (done) {
+                        controller.close();
+                        return;
+                      }
+                      chunks.push(value);
+                      receivedLength += value.length;
+
+                      // Update loading bar
+                      const percent = Math.round(
+                        (receivedLength / contentLength) * 100
+                      );
+                      loadingBar.style.width = `${percent}%`;
+                      loadingBar.textContent = `${percent}%`;
+
+                      controller.enqueue(value);
+                      read();
+                    })
+                    .catch((error) => {
+                      console.error("Error reading stream:", error);
+                      controller.error(error);
+                    });
+                }
+
+                read();
+              },
+            });
+          })
+          .then((stream) => new Response(stream))
+          .then((response) => response.blob())
+          .then((blob) => {
+            // Create a temporary URL for the blob
+            const url = window.URL.createObjectURL(blob);
+            // Create a link element to trigger the download
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "output.csv";
+            // Append the link to the document and trigger the click event
+            document.body.appendChild(a);
+            a.click();
+            // Cleanup: remove the link and revoke the URL
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            // Hide the loading bar
+            loadingBarContainer.style.display = "none";
+          })
+          .catch((error) => {
+            console.error("Error fetching CSV data:", error);
+            alert("Failed to fetch CSV data. Please try again later.");
+            // Hide the loading bar
+            loadingBarContainer.style.display = "none";
+          });
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Upload CSV Data</title>
+    <style>
+      /* Basic styles for the loading bar */
+      #loadingBarContainer {
+        display: none;
+        width: 100%;
+        background-color: #f3f3f3;
+        border: 1px solid #ccc;
+        margin-top: 10px;
+      }
+
+      #loadingBar {
+        width: 0;
+        height: 30px;
+        background-color: #4caf50;
+        text-align: center;
+        line-height: 30px;
+        color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Upload CSV Data</h1>
+    <form id="uploadForm" method="post" enctype="multipart/form-data">
+      <input type="file" name="csvFile" accept=".csv" required />
+      <button type="submit">Upload CSV</button>
+    </form>
+    <div id="loadingBarContainer">
+      <div id="loadingBar">0%</div>
+    </div>
+
+    <script>
+      document
+        .getElementById("uploadForm")
+        .addEventListener("submit", function (event) {
+          event.preventDefault(); // Prevent the default form submission
+
+          const loadingBarContainer = document.getElementById(
+            "loadingBarContainer"
+          );
+          const loadingBar = document.getElementById("loadingBar");
+
+          // Show the loading bar
+          loadingBarContainer.style.display = "block";
+          loadingBar.style.width = "0%";
+          loadingBar.textContent = "0%";
+
+          const formData = new FormData(this);
+          const xhr = new XMLHttpRequest();
+
+          xhr.open("POST", "/upload-csv", true);
+
+          xhr.upload.onprogress = function (event) {
+            if (event.lengthComputable) {
+              const percent = Math.round((event.loaded / event.total) * 100);
+              loadingBar.style.width = `${percent}%`;
+              loadingBar.textContent = `${percent}%`;
+            }
+          };
+
+          xhr.onload = function () {
+            if (xhr.status === 200) {
+              alert("CSV file successfully uploaded.");
+            } else {
+              alert("Failed to upload CSV file.");
+            }
+            // Hide the loading bar
+            loadingBarContainer.style.display = "none";
+          };
+
+          xhr.onerror = function () {
+            alert("An error occurred during the upload.");
+            // Hide the loading bar
+            loadingBarContainer.style.display = "none";
+          };
+
+          xhr.send(formData);
+        });
+    </script>
+  </body>
+</html>
